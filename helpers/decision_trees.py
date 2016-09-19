@@ -22,7 +22,8 @@ def entropy(collection):
 def gain(collection, attr):
     """Accepts list of counts for each
     classification class, 2-d list of classifications
-    after split with attribute attr.
+    after split with attribute attr. Returns information
+    gain (decrease in entropy) in bits.
     """
 
     # Get sum of classified query instances
