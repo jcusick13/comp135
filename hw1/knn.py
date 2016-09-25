@@ -1,4 +1,84 @@
 # knn.py
+import math
+
+
+def discrete_counts(dataset, feature):
+    """Splits dataset into 5 groups, based on an ordered
+    list of values from feature. Converts the numerical
+    value of the feature into one of 5 discrete categories,
+    corresponding to the five groups. Returns a dictionary of
+    discrete category: list of counts per output classification
+    i.e. {0: [16, 8], 1: [7, 17], 2: [8, 15], 3: [4, 19], 4: [6, 17]}
+    when there are only two output classifications.
+
+    This is intended to be used as the input for measuring the
+    information gain of the selected feature in the dataset.
+
+    dataset: arff class
+    feature: string name of feature
+    """
+
+    # Create list of feature value, classification for each
+    # entry in dataset
+    info = [[getattr(row, feature), row[-1]] for row in dataset.data]
+    print info[:5]
+
+    # Sort list by feature values
+    info.sort(lambda x, y: cmp(x[0], y[0]))
+    print info[:5]
+    print dataset.classes
+
+    # Prepare to divide info list into list of 5 groups
+    grp_size = len(info) // 5
+    groups = []
+
+    # Create and append 5 groups of exact same size
+    for i in range(0, grp_size * 5, grp_size):
+        groups.append(info[i:i + grp_size])
+
+    # Evenly distribute leftover rows, if applicable
+    if len(info) % 5 != 0:
+        grp_assigned = 0
+        for i in range(grp_size * 5, len(info)):
+            groups[grp_assigned].append(info[i])
+            grp_assigned += 1
+
+    # Create dictionary of list of classification counts by group
+    grp_counts = {}
+    number = 0
+
+    for grp in groups:
+        # Array used for index locations of each output classification
+        class_idx_ref = [i for i in dataset.classes]
+        # Array of counter totals for each output classification
+        class_count = [0 for i in dataset.classes]
+
+        for exp in grp:
+            # Increase index of list by one each time that index's
+            # classification is seen
+            class_count[class_idx_ref.index(exp[-1])] += 1
+
+        grp_counts[number] = class_count
+        number += 1
+
+    return grp_counts
+
+
+def entropy(collection):
+    """Accepts list of counts for each
+    classification class, returns entropy
+    as expected encoding length in bits.
+    """
+
+    # Get sum of classified query instances
+    s = float(reduce(lambda a, b: a + b, collection))
+
+    # Calculate individual entropy terms using proportion
+    # of classification i relative to the full collection
+    entropy = [-((i / s) * math.log(i / s, 2)) for i in collection]
+
+    # Sum entropy over each classification
+    return reduce(lambda a, b: a + b, entropy)
 
 
 def euclidean_dist(x, y, weight=1.0):
@@ -60,6 +140,29 @@ def find_neighbors(training, inst, k):
     return nn_cleaned
 
 
+def info_gain(collection, attr):
+    """Accepts list of counts for each
+    classification class, 2-d list of classifications
+    after split with attribute attr. Returns information
+    gain (decrease in entropy) in bits.
+    """
+
+    # Get sum of classified query instances
+    s = float(reduce(lambda a, b: a + b, collection))
+
+    # Calculate sum of proportional entropy after
+    # split using attr
+    postsplit = 0.0
+    count = 0
+    for value in attr:
+        sv = reduce(lambda a, b: a + b, attr[count])
+        # Weighted entropy of each class after split
+        postsplit += (sv / s) * entropy(attr[count])
+        count += 1
+
+    return entropy(collection) - postsplit
+
+
 def majority_count(examples):
     """Returns the majority classification count from a list
     of tuples. Each tuple is a data point and the last
@@ -105,3 +208,17 @@ def knn(train, test, k):
             acc['wrong'] += 1
 
     return acc['correct'] / sum(acc.values())
+
+
+def knn_info_gain(train, test, k, n):
+    """Performs an initial information gain analysis
+    on each of the attributes of the train dataset and
+    allows the caller to pass n, where n is the number
+    of attributes with the highest information gain to
+    be used when assigning examples from the test dataset
+    to a classification.
+
+    Returns test set classification accuracy.
+    """
+
+    # Calculate info gain for each attribute in train
