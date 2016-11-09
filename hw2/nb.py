@@ -2,7 +2,7 @@
 import math
 
 
-def learn_nb(index, m=0.0):
+def learn_nb(index, m=0.0, brk=-99):
     """Takes in an index file with the syntax:
         1|yes|
     Where the first item defines the index number
@@ -30,7 +30,8 @@ def learn_nb(index, m=0.0):
     ----/sport
 
     index: str, filename of index file
-    m: float, m-parameter for smoothing eqn. default=0.0
+    m: float, m-parameter for smoothing eqn.
+    brk: int, number of lines to stop reading index file at
     """
 
     # Create dict of class count, word count, doc count
@@ -47,7 +48,12 @@ def learn_nb(index, m=0.0):
 
     with open(index, 'r') as idx:
 
+        count = 1
         for line in idx:
+            # Check if allowed to continue reading index file
+            if count == brk:
+                break
+
             # Capture document title
             ln_splt = line.split('|')
             doc_num = ln_splt[0]
@@ -61,6 +67,9 @@ def learn_nb(index, m=0.0):
 
             # Read individual document
             with open(r'pp2data/ibmmac/%s.clean' % (doc_num), 'r') as doc:
+
+                # list to ensure doc_count only increased once per word per doc
+                seen = []
 
                 # 'no' articles
                 if cl == 'no':
@@ -76,13 +85,16 @@ def learn_nb(index, m=0.0):
                                 words[w][0] += 1.0
                             else:
                                 words[w] = [1.0, 0.0]
-                            # Update bag of words & doc count for new words
+                            # Update bag of words
                             if w not in bag:
                                 bag.append(w)
+                            # Update doc count
+                            if w not in seen:
                                 if w in doc_count:
                                     doc_count[w][0] += 1.0
                                 else:
                                     doc_count[w] = [1.0, 0.0]
+                                seen.append(w)
 
                 # 'yes' articles
                 else:
@@ -98,13 +110,16 @@ def learn_nb(index, m=0.0):
                                 words[w][1] += 1.0
                             else:
                                 words[w] = [0.0, 1.0]
-                            # Update bag of words & doc count for new words
+                            # Update bag of words
                             if w not in bag:
                                 bag.append(w)
+                            # Update doc count
+                            if w not in seen:
                                 if w in doc_count:
                                     doc_count[w][1] += 1.0
                                 else:
                                     doc_count[w] = [0.0, 1.0]
+                                seen.append(w)
 
     # Add total word count to dict
     count0 = reduce(lambda a, b: a + b, [x[0] for x in words.itervalues()])
@@ -137,11 +152,11 @@ def learn_nb(index, m=0.0):
         # -------------------------------
 
         # 'no' prior
-        val0 = (doc_count[k][0] + m) / (clcount['no'] + (m * 2))
+        bag_val0 = (doc_count[k][0] + m) / (clcount['no'] + (m * 2))
         # 'yes' prior
-        val1 = (doc_count[k][1] + m) / (clcount['yes'] + (m * 2))
+        bag_val1 = (doc_count[k][1] + m) / (clcount['yes'] + (m * 2))
 
-        prior_bag[k] = [val0, val1]
+        prior_bag[k] = [bag_val0, bag_val1]
 
     # Get totals from clcount dict
     class_total = clcount['no'] + clcount['yes']
@@ -158,7 +173,8 @@ def learn_nb(index, m=0.0):
 def classify_nb_t1(document, prior, cp):
     """Classifies a document as 'no' or 'yes' using Naive
     Bayes with the prior probailites of all of the words in
-    wordct.
+    prior. Represents each word in the input
+    document being its own feature.
 
     document: str, filename of document to classify
     prior: dict, key=word,
@@ -194,7 +210,7 @@ def classify_nb_t1(document, prior, cp):
 def classify_nb_t2(document, prior, cp, vocab):
     """Classifies a document as 'no' or 'yes' using Naive
     Bayes with the prior probabilities of all of the words in
-    wordct. Represents document as a binary bag of words.
+    prior. Represents input document as a binary bag of words.
 
     document: str, filename of document to classify
     prior: dict, key=word,
@@ -227,8 +243,10 @@ def classify_nb_t2(document, prior, cp, vocab):
     index = 0
     for mark in bag:
         if mark == 1:
-            nb_no += math.log(prior[vocab[index]][0])
-            nb_yes += math.log(prior[vocab[index]][1])
+            if prior[vocab[index]][0] > 0:
+                nb_no += math.log(prior[vocab[index]][0])
+            if prior[vocab[index]][1] > 0:
+                nb_yes += math.log(prior[vocab[index]][1])
         index += 1
 
     # Return output classification
@@ -243,13 +261,16 @@ def naive_bayes(prior, cp, bag, test, variant):
     classification. Returns accuracy of classification
     algorithm.
 
-    train: str, index filename of documents to train on
+    prior: dict, key=word, values=[prior prob of 'no'
+                                   prior prob of 'yes']
+            i.e. prior[hockey] = [0.03123, 0.00252]
+    cp: list, class prior probability for each class
+        i.e. class_prior = [0.47, 0.53] where class_prior[0]
+        is the 'no' prior and class_prior[1] is the 'yes' prior
+    bag: list, alphabeticaly ordered unique words in full vocabulary
+        of training sets
     test: str, index filename of documents to test
-    variant: str, accepts 'Type1' or 'Type2' where
-        'Type1' is a traditional implemention giving each word
-            in the document its own representation
-        'Type2' is a bag of words representation of incoming
-            documents to test on
+    variant: str, accepts 'Type1' or 'Type2'
     """
 
     # Determine folder to test from (ibmmac or sport)
@@ -296,14 +317,3 @@ def naive_bayes(prior, cp, bag, test, variant):
 
     # Calculate final classification results accuracy
     return result[1] / (result[0] + result[1])
-
-
-if __name__ == '__main__':
-
-    train = r'pp2data/ibmmac/index_train'
-    test = r'pp2data/ibmmac/index_test'
-
-    print 'Calculating training set priors...'
-    prior1, cp, bag, prior2 = learn_nb(train, 0.0)
-    print naive_bayes(prior1, cp, bag, test, 'Type1')
-    print naive_bayes(prior2, cp, bag, test, 'Type2')
