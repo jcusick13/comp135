@@ -132,12 +132,13 @@ class NeuralNet():
     def __str__(self):
         return str([l.__str__() for l in self.layers])
 
-    def propagate_forward(self, in_values):
+    def propagate_forward(self, in_values, test=False):
         """Creates input layer to network then walks forward
         from input to output layer calculating the output value
         of each node along the way.
 
         in_values: list, initialization values for input nodes
+        test: bool, switch to help set weights during testing
         """
 
         # Insert input nodes as first layer in network
@@ -147,12 +148,16 @@ class NeuralNet():
         # Recreate first hidden layer (to generate correct num. of weights)
         self.layers[1] = Layer(self.w, prev_inputs=len(in_values))
 
+        if test:
+            # Reset weights for 1st hidden layer to 1 for testing
+            for node in self.layers[1].nodes:
+                node.weights = [1.0 for i in range(len(in_values))]
+
         # Create list of node values from previous layer
         prev_values = in_values
 
-        # Walk forward through layers, update values (skip input layer)
+        # Walk forward through layers, update node values (skip input layer)
         for layer in self.layers[1:]:
-            print prev_values
             for node in layer.nodes:
                 node.update_value(prev_values)
             prev_values = layer.values()

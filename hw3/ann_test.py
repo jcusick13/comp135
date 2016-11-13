@@ -65,6 +65,26 @@ class TestAnnFunctions(unittest.TestCase):
         n = Node()
         self.assertEqual(round(n._sigmoid_p(0.993), 3), 0.007)
 
+    #
+    # NeuralNet.propagate_forward()
+    #
+
+    def test_propagate_forward(self):
+        """Ensures correct output of forward propagation of
+        x_i values through network."""
+        nn = NeuralNet(2, 1, 2, 2)
+
+        # Override weights to static value for reproducibility
+        for node in nn.layers[1].nodes:
+            node.weights = [0.6, 0.6]
+
+        for node in nn.layers[2].nodes:
+            node.weights = [1.0, 1.0]
+
+        nn.propagate_forward([2, 3], test=True)
+        model_output = nn.layers[3].nodes[0].value
+
+        self.assertEqual(round(model_output, 3), 0.823)
 
 if __name__ == '__main__':
     unittest.main()
