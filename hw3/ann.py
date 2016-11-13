@@ -23,6 +23,9 @@ class Node():
         else:
             self.weights = np.random.uniform(-0.1, 0.1, inputs)
 
+        # Delta value for backproagation (placeholder during init)
+        self.delta = -999.9
+
     def __str__(self):
         return str(self.value)
 
@@ -65,6 +68,48 @@ class Node():
         # Ensure float input
         i = i / 1.0
         return i * (1.0 - i)
+
+    def _delta_n(self, y):
+        """Calculates the delta value used during backpropagation
+        of nodes in the output layer.
+
+        y: float/int, target function value for x_N
+        """
+        sig_p = self._sigmoid_p(self.value)
+
+        self.delta = (-sig_p) * (y - self.value)
+        return self.delta
+
+    def _delta_i(self, k, index):
+        """Calculates the delta value used during backpropagation
+        for nodes in hidden layers.
+
+        k: Layer, the layer immediately after (closer to the output layer)
+            the layer in which this node resides.
+        index: int, zero-based index of this node's location within
+            its layer
+        """
+        sig_p = self._sigmoid_p(self.value)
+        sum_k = 0.0
+
+        # Gather values from the k-layer
+        for node in k.nodes:
+            sum_k += (node.delta * node.weights[index])
+
+        self.delta = sig_p * sum_k
+        return self.delta
+
+    def update_weight(self, eta, x_j, index):
+        """Updates the node's weight during backpropagation using
+        gradient descent.
+
+        eta: float, learning rate
+        x_j: float, sigmoid output of the x_j node
+        index: int, zero-based index of this node's weight under
+            consideration
+        """
+        w = self.weights[index] - (eta * self.delta * x_j)
+        self.weights[index] = w
 
 
 class Layer():
@@ -145,7 +190,7 @@ class NeuralNet():
         input_layer = Layer(len(in_values), value=in_values)
         self.layers.insert(0, input_layer)
 
-        # Recreate first hidden layer (to generate correct num. of weights)
+        # Recreate first hidden layer (to generate correct weight values)
         self.layers[1] = Layer(self.w, prev_inputs=len(in_values))
 
         if test:
@@ -161,3 +206,39 @@ class NeuralNet():
             for node in layer.nodes:
                 node.update_value(prev_values)
             prev_values = layer.values()
+
+    def propagate_backward(self, eta, outputs):
+        """Walks backward through the network, updating the node weights in
+        each layer using a stochastic gradient decent update function.
+
+        eta: float, learning rate
+        outputs: list, float values of target function outputs
+        """
+        # Calculate delta value for output layer
+        i = 0
+        for node in self.layers[-1].nodes:
+            node._delta_n(outputs[i])
+            i += 1
+
+        # Walk backwards
+        lyr = -2
+        for layer in reversed(self.layers[1:]):  # Skip input layer;
+                                                # nodes contain no weights
+
+            # Calculate delta values for nodes in preceding (closer to
+            #   inputs) layer
+            node_index = 0
+            for node in self.layers[lyr].nodes:
+                node._delta_i(layer, node_index)
+                node_index += 1
+
+            # Node connections that require weight updates
+            weight_width = len(self.layers[lyr].nodes)
+
+            # Gradient descent update for nodes in current layer
+            for node in layer.nodes:
+                for j in range(weight_width):
+                    node.update_weight(eta, node.value, j)
+
+            # Update layer index
+            lyr -= 1
