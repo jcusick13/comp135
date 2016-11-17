@@ -1,6 +1,7 @@
 # ann.py
 import math
 import numpy as np
+from arff_reader import Arff
 
 
 class Node():
@@ -143,10 +144,42 @@ class Layer():
 
 class NeuralNet():
     """Neural network implementation using sigmoid activation function
-    with backpropagation used to determine error and weight updates.
+    with backpropagation used for determining error and weight updates.
     """
 
-    def __init__(self, inputs, outputs, width, depth):
+    def __init__(self, width, depth, train, test, eta=0.1, blank=False):
+        """Determines network parameters. Hidden layer width and depth
+        are user-defined while input dimension count and output label
+        count are taken from the training file. Train and test datasets
+        are expected to have the same feature/output count.
+
+        width: int, number of nodes per hidden layer
+        depth: int, number of hidden layers between input and output layers
+        train: arff file, training data set with numeric only attributes
+        test: arff file, test data set with numeric only attributes
+        eta: float, learning rate
+        blank: bool, switch used to initialize empty net, used
+                for unit testing
+        """
+        if not blank:
+            self.w = width
+            self.d = depth
+            self.train = Arff(train)
+            self.test = Arff(test)
+
+            # Input dimension count (subtract output colmn name)
+            self.inputs = len(self.train.field_names) - 1
+
+            # Output label count
+            self.outputs = len(self.train.classes.keys())
+
+            # Initialize network
+            self.create_net(self.inputs, self.outputs, self.w, self.d)
+
+    def __str__(self):
+        return str([l.__str__() for l in self.layers])
+
+    def create_net(self, inputs, outputs, width, depth):
         """Initializes network structure. Every node between two adjacent
         layers are directly connected to each other.
 
@@ -173,9 +206,6 @@ class NeuralNet():
 
         # Add output layer (previous layer node count is known)
         self.layers.append(Layer(self.outputs, prev_inputs=self.w))
-
-    def __str__(self):
-        return str([l.__str__() for l in self.layers])
 
     def propagate_forward(self, in_values, test=False):
         """Creates input layer to network then walks forward

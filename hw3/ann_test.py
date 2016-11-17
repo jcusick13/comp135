@@ -144,7 +144,8 @@ class TestAnnFunctions(unittest.TestCase):
     def test_propagate_forward(self):
         """Ensures correct output of forward propagation of
         x_i values through network."""
-        nn = NeuralNet(2, 1, 2, 2)
+        nn = NeuralNet(0, 0, '', '', blank=True)
+        nn.create_net(2, 1, 2, 2)
 
         # Override weights to static value for reproducibility
         for node in nn.layers[1].nodes:
@@ -165,7 +166,8 @@ class TestAnnFunctions(unittest.TestCase):
         """Ensures correct weight updates are made to the final
         (closest to output layer) hidden layer.
         """
-        nn = NeuralNet(2, 1, 2, 2)
+        nn = NeuralNet(0, 0, '', '', blank=True)
+        nn.create_net(2, 1, 2, 2)
 
         # Override weights to static value for reproducibility
         for node in nn.layers[1].nodes:
@@ -187,7 +189,8 @@ class TestAnnFunctions(unittest.TestCase):
         """Ensures correct weight updates are made to the first
         (closest to input layer) hidden layer.
         """
-        nn = NeuralNet(2, 1, 2, 2)
+        nn = NeuralNet(0, 0, '', '', blank=True)
+        nn.create_net(2, 1, 2, 2)
 
         # Override weights to static value for reproducibility
         for node in nn.layers[1].nodes:

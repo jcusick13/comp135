@@ -3,7 +3,7 @@ from collections import namedtuple
 import keyword
 
 
-class arff:
+class Arff:
     """Container for .arff dataset allowing
     for manulipation in python. Assumes all features
     features are numerical except last column
