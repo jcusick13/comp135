@@ -161,6 +161,8 @@ class NeuralNet():
         blank: bool, switch used to initialize empty net, used
                 for unit testing
         """
+        self.eta = eta
+
         if not blank:
             self.w = width
             self.d = depth
@@ -195,6 +197,10 @@ class NeuralNet():
         self.d = depth
         self.layers = []
 
+        # Create placeholder for input Layer - to be updated with proper
+        #   dimensionality once the network needs to be propagated forward
+        self.layers.append(Layer(self.inputs))
+
         # Add first hidden layer (unsure of previous layer node count) -
         #   Just a placeholder to be replaced once input dimensionality is
         #   determined and correct amount of weight values can be created
@@ -220,6 +226,9 @@ class NeuralNet():
         in_values: list, initialization values for input nodes
         test: bool, switch to help set weights during testing
         """
+        # Remove first layer in network (currently either placeholder
+        #   or input layer from a prior example)
+        self.layers.remove(self.layers[0])
 
         # Insert input nodes as first layer in network
         input_layer = Layer(len(in_values), value=in_values)

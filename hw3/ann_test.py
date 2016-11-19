@@ -126,7 +126,7 @@ class TestAnnFunctions(unittest.TestCase):
     #
     # Node.update_weight()
     #
-    def test_update_weight(self):
+    def test_node_update_weight(self):
         """Ensures correct output during weight update process."""
         n = Node(value=0.823)
         n.weights = [1.0, 1.0]
@@ -142,20 +142,21 @@ class TestAnnFunctions(unittest.TestCase):
     # NeuralNet.propagate_forward()
     #
     def test_propagate_forward(self):
-        """Ensures correct output of forward propagation of
-        x_i values through network."""
+        """Ensures correct final network output of forward
+        propagation of x_i values.
+        """
         nn = NeuralNet(0, 0, '', '', blank=True)
         nn.create_net(2, 1, 2, 2)
 
         # Override weights to static value for reproducibility
-        for node in nn.layers[1].nodes:
+        for node in nn.layers[2].nodes:
             node.weights = [0.6, 0.6]
 
-        for node in nn.layers[2].nodes:
+        for node in nn.layers[3].nodes:
             node.weights = [1.0, 1.0]
 
         nn.propagate_forward([2, 3], test=True)
-        model_output = nn.layers[3].nodes[0].value
+        model_output = nn.layers[-1].nodes[0].value
 
         self.assertEqual(round(model_output, 3), 0.823)
 
@@ -187,10 +188,10 @@ class TestAnnFunctions(unittest.TestCase):
         nn.eta = 0.1
 
         # Override weights to static value for reproducibility
-        for node in nn.layers[1].nodes:
+        for node in nn.layers[2].nodes:
             node.weights = [0.6, 0.6]
 
-        for node in nn.layers[2].nodes:
+        for node in nn.layers[3].nodes:
             node.weights = [1.0, 1.0]
 
         # Walk forward
@@ -211,10 +212,10 @@ class TestAnnFunctions(unittest.TestCase):
         nn.eta = 0.1
 
         # Override weights to static value for reproducibility
-        for node in nn.layers[1].nodes:
+        for node in nn.layers[2].nodes:
             node.weights = [0.6, 0.6]
 
-        for node in nn.layers[2].nodes:
+        for node in nn.layers[3].nodes:
             node.weights = [1.0, 1.0]
 
         # Walk forward
@@ -229,7 +230,7 @@ class TestAnnFunctions(unittest.TestCase):
     #
     # NeuralNet.update_weights()
     #
-    def test_weight_update(self):
+    def test_net_weight_update(self):
         """Ensures correct weight to output
         node after walking through the network forwards
         and backwards once.
@@ -239,10 +240,10 @@ class TestAnnFunctions(unittest.TestCase):
         nn.eta = 0.1
 
         # Override weights to static value for reproducibility
-        for node in nn.layers[1].nodes:
+        for node in nn.layers[2].nodes:
             node.weights = [0.6, 0.6]
 
-        for node in nn.layers[2].nodes:
+        for node in nn.layers[3].nodes:
             node.weights = [1.0, 1.0]
 
         nn.update_weights([2, 3], [0], test=True)
@@ -262,11 +263,11 @@ class TestAnnFunctions(unittest.TestCase):
         nn.eta = 0.1
 
         # Override weights to static value for reproducibility
-        for node in nn.layers[1].nodes:
+        for node in nn.layers[2].nodes:
             node.weights = [0.6, 0.6]
 
-        nn.layers[2].nodes[0].weights = [0.0, 0.0]
-        nn.layers[2].nodes[1].weights = [1.0, 1.0]
+        nn.layers[3].nodes[0].weights = [0.0, 0.0]
+        nn.layers[3].nodes[1].weights = [1.0, 1.0]
 
         val = nn.assign_output([2, 3], test=True)
         self.assertEqual(val, '01')
@@ -280,11 +281,11 @@ class TestAnnFunctions(unittest.TestCase):
         nn.eta = 0.1
 
         # Override weights to static value for reproducibility
-        for node in nn.layers[1].nodes:
+        for node in nn.layers[2].nodes:
             node.weights = [0.6, 0.6]
 
-        nn.layers[2].nodes[0].weights = [1.0, 1.0]
-        nn.layers[2].nodes[1].weights = [0.0, 0.0]
+        nn.layers[3].nodes[0].weights = [1.0, 1.0]
+        nn.layers[3].nodes[1].weights = [0.0, 0.0]
 
         val = nn.assign_output([2, 3], test=True)
         self.assertEqual(val, '10')

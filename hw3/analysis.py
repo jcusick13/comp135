@@ -19,7 +19,34 @@ def learn(w, d, traindata, testdata):
     # Construct network and initialize weights
     nn = NeuralNet(w, d, traindata, testdata)
 
-    # Update weights with training dataset
-    for example in traindata:
+    # Create Arff classes from input files
+    train = Arff(traindata)
+    test = Arff(testdata)
+
+    for example in train.data[:5]:
+
         # Create list from named tuple (ignore example classification)
         inputs = [val for val in example[:-1]]
+
+        # Convert output into one-hot endcoding
+        classification = int(example[-1])
+        onehot = ''  # string encoding
+        outputs = []  # list integer encoding
+
+        for i in range(10):
+            if i == classification:
+                onehot += '1'
+                outputs.append(1)
+            else:
+                onehot += '0'
+                outputs.append(0)
+
+        # Update network weights
+        nn.update_weights(inputs, outputs)
+
+
+if __name__ == '__main__':
+    train = r'optdigits_train.arff'
+    test = r'optdigits_test.arff'
+
+    learn(2, 2, train, test)
