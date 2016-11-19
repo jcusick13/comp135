@@ -247,26 +247,47 @@ class TestAnnFunctions(unittest.TestCase):
 
         nn.update_weights([2, 3], [0], test=True)
 
+        test_weight = nn.layers[-1].nodes[0].weights[0]
+        self.assertEqual(round(test_weight, 4), 0.9901)
+
     #
     # NeuralNet.assign_output()
     #
-    def test_find_highest_value_node(self):
-        """Ensures that the output node with the highest
-        value is selected for prediction.
+    def test_find_highest_value_node_last(self):
+        """Ensures that the last output node is correctly
+        selected for prediction.
         """
         nn = NeuralNet(0, 0, '', '', blank=True)
-        nn.create_net(2, 1, 2, 2)
+        nn.create_net(2, 2, 2, 2)
         nn.eta = 0.1
 
         # Override weights to static value for reproducibility
         for node in nn.layers[1].nodes:
             node.weights = [0.6, 0.6]
 
-        for node in nn.layers[2].nodes:
-            node.weights = [1.0, 1.0]
+        nn.layers[2].nodes[0].weights = [0.0, 0.0]
+        nn.layers[2].nodes[1].weights = [1.0, 1.0]
 
         val = nn.assign_output([2, 3], test=True)
-        self.assertEqual(val, '1')
+        self.assertEqual(val, '01')
+
+    def test_find_highest_value_node_first(self):
+        """Ensures that the first output node is correctly
+        selected for prediction.
+        """
+        nn = NeuralNet(0, 0, '', '', blank=True)
+        nn.create_net(2, 2, 2, 2)
+        nn.eta = 0.1
+
+        # Override weights to static value for reproducibility
+        for node in nn.layers[1].nodes:
+            node.weights = [0.6, 0.6]
+
+        nn.layers[2].nodes[0].weights = [1.0, 1.0]
+        nn.layers[2].nodes[1].weights = [0.0, 0.0]
+
+        val = nn.assign_output([2, 3], test=True)
+        self.assertEqual(val, '10')
 
 
 if __name__ == '__main__':
