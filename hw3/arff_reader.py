@@ -91,3 +91,15 @@ class Arff:
         print '\n ------'
         for i in self.field_names:
             print i + ': ', getattr(row, i)
+
+
+if __name__ == '__main__':
+    inf = r'optdigits_train.arff'
+
+    train = Arff(inf)
+
+    for row in train.data:
+        print [i for i in row[:-1]]
+        break
+
+

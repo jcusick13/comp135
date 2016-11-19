@@ -159,6 +159,22 @@ class TestAnnFunctions(unittest.TestCase):
 
         self.assertEqual(round(model_output, 3), 0.823)
 
+    def test_propagate_forward_no_hidden(self):
+        """Ensures correct output when the network
+        consists of a single input and output layer
+        i.e. - no hidden layers.
+        """
+        nn = NeuralNet(0, 0, '', '', blank=True)
+        nn.create_net(2, 1, 0, 0)
+
+        for node in nn.layers[-1].nodes:
+            node.weights = [1.0, 1.0]
+
+        nn.propagate_forward([2, 3], test=True)
+        model_output = nn.layers[-1].nodes[0].value
+
+        self.assertEqual(round(model_output, 3), 0.993)
+
     #
     # NeuralNet.propagate_backward()
     #
@@ -168,6 +184,7 @@ class TestAnnFunctions(unittest.TestCase):
         """
         nn = NeuralNet(0, 0, '', '', blank=True)
         nn.create_net(2, 1, 2, 2)
+        nn.eta = 0.1
 
         # Override weights to static value for reproducibility
         for node in nn.layers[1].nodes:
@@ -180,7 +197,7 @@ class TestAnnFunctions(unittest.TestCase):
         nn.propagate_forward([2, 3], test=True)
 
         # Walk backward
-        nn.propagate_backward(0.1, [0])
+        nn.propagate_backward([0])
 
         test_weight = nn.layers[-1].nodes[0].weights[0]
         self.assertEqual(round(test_weight, 4), 0.9901)
@@ -191,6 +208,7 @@ class TestAnnFunctions(unittest.TestCase):
         """
         nn = NeuralNet(0, 0, '', '', blank=True)
         nn.create_net(2, 1, 2, 2)
+        nn.eta = 0.1
 
         # Override weights to static value for reproducibility
         for node in nn.layers[1].nodes:
@@ -203,10 +221,52 @@ class TestAnnFunctions(unittest.TestCase):
         nn.propagate_forward([2, 3], test=True)
 
         # Walk backward
-        nn.propagate_backward(0.1, [0])
+        nn.propagate_backward([0])
 
         test_weight = nn.layers[1].nodes[0].weights[0]
         self.assertEqual(round(test_weight, 6), 0.999983)
+
+    #
+    # NeuralNet.update_weights()
+    #
+    def test_weight_update(self):
+        """Ensures correct weight to output
+        node after walking through the network forwards
+        and backwards once.
+        """
+        nn = NeuralNet(0, 0, '', '', blank=True)
+        nn.create_net(2, 1, 2, 2)
+        nn.eta = 0.1
+
+        # Override weights to static value for reproducibility
+        for node in nn.layers[1].nodes:
+            node.weights = [0.6, 0.6]
+
+        for node in nn.layers[2].nodes:
+            node.weights = [1.0, 1.0]
+
+        nn.update_weights([2, 3], [0], test=True)
+
+    #
+    # NeuralNet.assign_output()
+    #
+    def test_find_highest_value_node(self):
+        """Ensures that the output node with the highest
+        value is selected for prediction.
+        """
+        nn = NeuralNet(0, 0, '', '', blank=True)
+        nn.create_net(2, 1, 2, 2)
+        nn.eta = 0.1
+
+        # Override weights to static value for reproducibility
+        for node in nn.layers[1].nodes:
+            node.weights = [0.6, 0.6]
+
+        for node in nn.layers[2].nodes:
+            node.weights = [1.0, 1.0]
+
+        val = nn.assign_output([2, 3], test=True)
+        self.assertEqual(val, '1')
 
 
 if __name__ == '__main__':

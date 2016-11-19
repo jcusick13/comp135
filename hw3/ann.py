@@ -198,14 +198,19 @@ class NeuralNet():
         # Add first hidden layer (unsure of previous layer node count) -
         #   Just a placeholder to be replaced once input dimensionality is
         #   determined and correct amount of weight values can be created
-        self.layers.append(Layer(self.w))
+        if self.d > 0:
+            self.layers.append(Layer(self.w))
 
-        # Add hidden layers 2 to max (previous layer node count is known)
-        hidden = Layer(self.w, prev_inputs=self.w)
-        [self.layers.append(hidden) for x in range(self.d - 1)]
+            # Add hidden layers 2 to max (previous layer node count is known)
+            hidden = Layer(self.w, prev_inputs=self.w)
+            [self.layers.append(hidden) for x in range(self.d - 1)]
 
-        # Add output layer (previous layer node count is known)
-        self.layers.append(Layer(self.outputs, prev_inputs=self.w))
+            # Add output layer (previous layer node count is known)
+            self.layers.append(Layer(self.outputs, prev_inputs=self.w))
+
+        # No hidden layers, input connected directly to output
+        else:
+            self.layers.append(Layer(self.outputs, prev_inputs=self.inputs))
 
     def propagate_forward(self, in_values, test=False):
         """Creates input layer to network then walks forward
@@ -221,7 +226,8 @@ class NeuralNet():
         self.layers.insert(0, input_layer)
 
         # Recreate first hidden layer (to generate correct weight values)
-        self.layers[1] = Layer(self.w, prev_inputs=len(in_values))
+        if self.d > 0:
+            self.layers[1] = Layer(self.w, prev_inputs=len(in_values))
 
         if test:
             # Reset weights for 1st hidden layer to 1 for testing
@@ -237,7 +243,7 @@ class NeuralNet():
                 node.update_value(prev_values)
             prev_values = layer.values()
 
-    def propagate_backward(self, eta, outputs):
+    def propagate_backward(self, outputs):
         """Walks backward through the network, updating the node weights in
         each layer using a stochastic gradient decent update function.
 
@@ -268,7 +274,42 @@ class NeuralNet():
             # Gradient descent update for nodes in current layer
             for node in layer.nodes:
                 for j in range(weight_width):
-                    node.update_weight(eta, node.value, j)
+                    node.update_weight(self.eta, node.value, j)
 
             # Update layer index
             lyr -= 1
+
+    def update_weights(self, in_values, outputs, test=False):
+        """Updates network weights given a training input example
+
+        in_values: list, initialization value for input nodes
+        eta: float, learning rate,
+        outputs: list, float values of target function outputs
+        test: bool, switch to help set weights during testing
+        """
+        self.propagate_forward(in_values, test)
+        self.propagate_backward(outputs)
+
+    def assign_output(self, in_values, test=False):
+        """Calculates value at each node in network, returning
+        a one-hot encoded output value.
+
+        in_values: list, initialization value for input nodes
+        test: bool, switch to help set weights during testing
+        """
+        # Walk forward through net
+        self.propagate_forward(in_values, test)
+
+        # Find node index with highest value
+        max_value = max(self.layers[-1].values())
+        max_index = self.layers[-1].values().index(max_value)
+
+        # Encode output
+        onehot = ''
+        for i in range(self.outputs):
+            if i == max_index:
+                onehot += '1'
+            else:
+                onehot += '0'
+
+        return onehot
