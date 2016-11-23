@@ -54,10 +54,16 @@ class Node():
 
         i: float/int
         """
-
         # Ensure float input
         i = i / 1.0
-        return 1.0 / (1.0 + math.exp(-i))
+
+        # Protect against overflow
+        if i > 50:
+            return 1 - 1e-50
+        elif i < -50:
+            return 1e-50
+        else:
+            return 1.0 / (1.0 + np.exp(-i))
 
     def _sigmoid_p(self, i):
         """Calculates the derivative of the sigmoid
@@ -65,7 +71,6 @@ class Node():
 
         i: float/int
         """
-
         # Ensure float input
         i = i / 1.0
         return i * (1.0 - i)
@@ -95,7 +100,7 @@ class Node():
 
         # Gather values from the k-layer
         for node in k.nodes:
-            sum_k += (node.delta * node.weights[index])
+            sum_k += (node.delta) * (node.weights[index])
 
         self.delta = sig_p * sum_k
         return self.delta
@@ -116,13 +121,14 @@ class Node():
 class Layer():
     """Collection of nodes within one layer of a neural network."""
 
-    def __init__(self, nodes, value=None, prev_inputs=None):
+    def __init__(self, nodes, value=None, prev_inputs=None, dummy=False):
         """Initializes array of individual nodes.
 
         nodes: int, the number of nodes to be contained in the
                 layer (i.e. layer width)
         value: list, set of float values to initialize nodes to
         prev_inputs: int, number of nodes in the previous layer
+        dummy: bool, used to determine if layer's weights should be overwritten
         """
         if not value:
             # Initialize nodes to value of 0.0
@@ -132,6 +138,8 @@ class Layer():
             assert(nodes == len(value))
             self.nodes = [Node(value=value[x], inputs=prev_inputs)
                           for x in range(nodes)]
+
+        self.dummy = dummy
 
     def __str__(self):
         """Prints a list of node values for each node in the layer."""
@@ -205,7 +213,7 @@ class NeuralNet():
         #   Just a placeholder to be replaced once input dimensionality is
         #   determined and correct amount of weight values can be created
         if self.d > 0:
-            self.layers.append(Layer(self.w))
+            self.layers.append(Layer(self.w, dummy=True))
 
             # Add hidden layers 2 to max (previous layer node count is known)
             hidden = Layer(self.w, prev_inputs=self.w)
@@ -226,6 +234,14 @@ class NeuralNet():
         in_values: list, initialization values for input nodes
         test: bool, switch to help set weights during testing
         """
+        # Save current weights if training is in progress
+        saved_weights = False
+        if not self.layers[1].dummy:
+            saved_weights = True
+            curr_weights = []
+            for node in self.layers[1].nodes:
+                curr_weights.append(node.weights)
+
         # Remove first layer in network (currently either placeholder
         #   or input layer from a prior example)
         self.layers.remove(self.layers[0])
@@ -237,6 +253,13 @@ class NeuralNet():
         # Recreate first hidden layer (to generate correct weight values)
         if self.d > 0:
             self.layers[1] = Layer(self.w, prev_inputs=len(in_values))
+            
+            # Ensure first hidden layer weights are initialized to value
+            #   at the end of the last backpropagation update
+            if saved_weights:
+                for i in range(len(self.layers[1].nodes)):
+                    self.layers[1].nodes[i].weights = curr_weights[i]
+
 
         if test:
             # Reset weights for 1st hidden layer to 1 for testing
@@ -256,7 +279,6 @@ class NeuralNet():
         """Walks backward through the network, updating the node weights in
         each layer using a stochastic gradient decent update function.
 
-        eta: float, learning rate
         outputs: list, float values of target function outputs
         """
         # Calculate delta value for output layer
@@ -292,7 +314,6 @@ class NeuralNet():
         """Updates network weights given a training input example
 
         in_values: list, initialization value for input nodes
-        eta: float, learning rate,
         outputs: list, float values of target function outputs
         test: bool, switch to help set weights during testing
         """
