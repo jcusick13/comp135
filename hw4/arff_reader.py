@@ -103,10 +103,3 @@ class Arff:
         print '\n ------'
         for i in self.field_names:
             print i + ': ', getattr(row, i)
-
-if __name__ == '__main__':
-    test = r'Atest.arff'
-
-    t = Arff(test)
-    for ft in t.data[0][:-1]:
-        print ft**2.0
