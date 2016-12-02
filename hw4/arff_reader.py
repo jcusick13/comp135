@@ -42,9 +42,13 @@ class Arff:
                         self.field_names.append(lsplit[1] + '_')
 
                     # Avoid non-alphanumeric using lookup dict 'avoid'
-                    elif(lsplit[1][-1] in avoid):
+                    elif (lsplit[1][-1] in avoid):
                         self.field_names.append(lsplit[1][:-1] +
                                                 avoid[lsplit[1][-1]])
+
+                    # Avoid starting field with a number
+                    elif self.is_numeric(lsplit[1][0]):
+                        self.field_names.append('attr' + lsplit[1].lower())
 
                     # Attribute name safe to use as is
                     else:
@@ -84,6 +88,14 @@ class Arff:
                 # Add namedtuple of input @data row to self.data
                 self.data.append(Row._make(flt_in_vals))
 
+    def is_numeric(self, s):
+        """Tests if input string is a number."""
+        try:
+            float(s)
+            return True
+        except ValueError:
+            return False
+
     def pprint(self, row):
         """Formatted printing of the entry at the
         provided row.
@@ -91,3 +103,10 @@ class Arff:
         print '\n ------'
         for i in self.field_names:
             print i + ': ', getattr(row, i)
+
+if __name__ == '__main__':
+    test = r'Atest.arff'
+
+    t = Arff(test)
+    for ft in t.data[0][:-1]:
+        print ft**2.0
