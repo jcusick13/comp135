@@ -23,7 +23,9 @@ class PrimalPerceptron():
 
     def calc_margin(self, train_data):
         """Calculates seperability margin as 0.1 * the
-        average norm of training examples.
+        average norm of training examples. Adds a constant
+        feature 1 to all dataset example to account for the
+        threshold.
 
         train_data: 2d-list, input training data
         """
@@ -37,6 +39,8 @@ class PrimalPerceptron():
             ex_tally = 0.0
             for ft in ex[:-1]:  # Ignore example label
                 ex_tally += (ft ** 2)
+                # Add constant value 1
+                ex_tally += 1.0
             norm = math.sqrt(ex_tally)
 
             running_tally += norm
@@ -199,7 +203,7 @@ class KernelPerceptron():
                 v = in_vals[:-1]  # example to classify
 
                 # (alpha_k * y_k * kernel value)
-                val += self.alpha[k] * dataset[k][-1] * self.poly_kernel(u, v)
+                val += self.alpha[k] * int(dataset[k][-1]) * self.poly_kernel(u, v)
 
         # RBF kernel
         if self.rbf:
@@ -243,3 +247,22 @@ class KernelPerceptron():
 
         # Return final alpha vector as hypothesis
         return self.alpha
+
+    def test(self, testdata):
+        """Labels examples in test dataset according to
+        alpha weight vector.
+
+        testdata: Arff class, testing dataset
+        """
+        correct = 0.0
+        total = 0.0
+
+        for example in testdata.data:
+            o, val = self.classify(example, testdata.data)
+
+            # Compare labels, record result
+            if o == int(example[-1]):
+                correct += 1.0
+            total += 1.0
+
+        return correct / total
