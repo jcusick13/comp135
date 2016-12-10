@@ -14,7 +14,7 @@ class TestPerceptronFns(unittest.TestCase):
         p = PrimalPerceptron(2)
         margin = p.calc_margin(train_data)
 
-        self.assertEqual(round(margin, 4), 0.4039)
+        self.assertEqual(round(margin, 4), 0.4162)
 
     def test_primal_set_margin(self):
         """Ensures margin attribute is updated."""
@@ -22,7 +22,7 @@ class TestPerceptronFns(unittest.TestCase):
         p = PrimalPerceptron(2)
         p.calc_margin(train_data)
 
-        self.assertEqual(round(p.margin, 4), 0.4039)
+        self.assertEqual(round(p.margin, 4), 0.4162)
 
     #
     # PrimalPerceptron.classify()
@@ -81,11 +81,21 @@ class TestPerceptronFns(unittest.TestCase):
 
         self.assertEqual(kernel, 1331)
 
+    def test_rbf_kernel_sigma_2(self):
+        """Ensure correctness when sigma = 2."""
+        u = [3, 2, 1]
+        v = [1, 2, 3]
+
+        kp = KernelPerceptron(2, RBF=True, s=2.0)
+        kernel = kp.rbf_kernel(u, v)
+
+        self.assertEqual(round(kernel, 4), 0.3679)
+
     #
     # KernelPerceptron.calc_margin()
     #
     def test_poly_kernel_margin(self):
-        """Ensure correct margin calculation."""
+        """Ensure correct margin calculation with poly kernel."""
         train_data = [[2, 4, 6, -1], [1, 2, 3, 1]]
         kp = KernelPerceptron(2, poly=True, d=1)
         margin = kp.calc_margin(train_data)
@@ -99,6 +109,14 @@ class TestPerceptronFns(unittest.TestCase):
         kp.calc_margin(train_data)
 
         self.assertEqual(round(kp.margin, 4), 0.5711)
+
+    def test_rbf_kernel_margin(self):
+        """Ensure correct margin calculation with rbf kernel."""
+        train_data = [[3, 2, 1, 1], [1, 2, 3, 1]]
+        kp = KernelPerceptron(2, RBF=True, s=1.0)
+        margin = kp.calc_margin(train_data)
+
+        self.assertEqual(round(margin, 1), 0.1)
 
     #
     # KernelPerceptron.classify()

@@ -39,8 +39,11 @@ class PrimalPerceptron():
             ex_tally = 0.0
             for ft in ex[:-1]:  # Ignore example label
                 ex_tally += (ft ** 2)
-                # Add constant value 1
-                ex_tally += 1.0
+
+            # Add constant value 1 ** 2 to each example
+            ex_tally += 1.0
+
+            # Root of sum of squares
             norm = math.sqrt(ex_tally)
 
             running_tally += norm
@@ -104,7 +107,7 @@ class PrimalPerceptron():
         """Labels examples in test_data according to current
         weight vector w, returns test dataset accuracy.
 
-        test_data: Arff class of training data
+        test_data: Arff class of testing data
         """
         correct = 0.0
         total = 0.0
@@ -117,7 +120,6 @@ class PrimalPerceptron():
             o, val = self.classify(example)
 
             # Compare labels, record result
-            print 'o: %i, label: %i' % (o, int(ex[-1]))
             if o == int(ex[-1]):
                 correct += 1.0
 
@@ -148,6 +150,9 @@ class KernelPerceptron():
         self.s = s
         self.margin = 0.0
 
+        if not poly and not RBF:
+            raise Exception('Polynomial or RBF kernel must be selected.')
+
     def __str__(self):
         """Returns alpha vector as a string for printing."""
         return str(self.alpha)
@@ -161,6 +166,23 @@ class KernelPerceptron():
         """
         return (np.dot(u, v) + 1) ** self.d
 
+    def rbf_kernel(self, u, v):
+        """Computes the radial basis function (gaussian) kernel of
+        two vectors u and v:
+        e ^ (- (||u - v||^2) / (2s^2))
+
+        u: list/array, input vector of numeric values
+        v: list/array, input vector of numeric values (same length as u)
+        """
+        # Squared norm difference
+        diff = np.subtract(u, v)
+        top = np.sum(np.square(diff))
+
+        # Sigma parameter
+        bottom = 2.0 * (self.s ** 2.0)
+
+        return math.exp(- (top / bottom))
+
     def calc_margin(self, train_data):
         """Calculates the seperability margin as
         0.1 * average kernel value. Uses either polynomial
@@ -168,46 +190,42 @@ class KernelPerceptron():
 
         train_data: 2-d list, input training data
         """
-        # Polynomial kernel
-        if self.poly:
-            count = 0.0  # Total training examples
-            running_tally = 0.0  # Sum of all sqrt(kernel)
+        count = 0.0  # Total training examples
+        running_tally = 0.0  # Sum of all sqrt(kernel)
 
-            # Sum sqrt(kernel) over all examples
-            for ex in train_data:
-                # Calculate kernel, add to running tally
+        # Sum sqrt(kernel) over all examples
+        for ex in train_data:
+            # Calculate kernel, add to running tally
+            if self.poly:
                 kernel = self.poly_kernel(ex[:-1], ex[:-1])
-                running_tally += math.sqrt(kernel)
+            else:
+                kernel = self.rbf_kernel(ex[:-1], ex[:-1])
 
-                count += 1.0
+            running_tally += math.sqrt(kernel)
+            count += 1.0
 
-            margin = 0.1 * (running_tally / count)
-            self.margin = margin
-            return margin
+        margin = 0.1 * (running_tally / count)
+        self.margin = margin
+        return margin
 
-        # RBF kernel
-        elif self.rbf:
-            return 0
-
-    def classify(self, in_vals, dataset):
+    def classify(self, in_vals, train):
         """Computes signed classifer function of input values
 
-        in_vals: list/array, training set example to classify
-        dataset: 2-d list/array, full train/test dataset
+        in_vals: list/array, training or test example to classify
+        train: 2-d list/array, full training dataset
         """
-        # Polynomial kernel
-        if self.poly:
-            val = 0.0
-            for k in range(len(dataset)):
-                u = dataset[k][:-1]  # k-th dataset example
-                v = in_vals[:-1]  # example to classify
+        val = 0.0
 
-                # (alpha_k * y_k * kernel value)
-                val += self.alpha[k] * int(dataset[k][-1]) * self.poly_kernel(u, v)
+        # Compare example to every training instance for classification
+        for k in range(len(train)):
+            u = train[k][:-1]  # k-th dataset example
+            v = in_vals[:-1]  # example to classify
 
-        # RBF kernel
-        if self.rbf:
-            val = 0
+            # (alpha_k * y_k * kernel value)
+            if self.poly:
+                val += self.alpha[k] * int(train[k][-1]) * self.poly_kernel(u, v)
+            else:
+                val += self.alpha[k] * int(train[k][-1]) * self.rbf_kernel(u, v)
 
         # Return signed value
         if val < 0:
@@ -248,17 +266,18 @@ class KernelPerceptron():
         # Return final alpha vector as hypothesis
         return self.alpha
 
-    def test(self, testdata):
+    def test(self, traindata, testdata):
         """Labels examples in test dataset according to
         alpha weight vector.
 
+        traindata: Arff class, training dataset
         testdata: Arff class, testing dataset
         """
         correct = 0.0
         total = 0.0
 
         for example in testdata.data:
-            o, val = self.classify(example, testdata.data)
+            o, val = self.classify(example, traindata.data)
 
             # Compare labels, record result
             if o == int(example[-1]):
