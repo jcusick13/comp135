@@ -97,7 +97,7 @@ class PrimalPerceptron():
                 o, value = self.classify(example)
 
                 # Update weights if prediction incorrect/within margin
-                if (o * value) < self.margin:
+                if (int(ex[-1]) * value) < self.margin:
                     self.update(example, o)
 
         # Return final weight vector as hypothesis
@@ -257,7 +257,7 @@ class KernelPerceptron():
                 o, val = self.classify(ex, traindata.data)
 
                 # Update alpha if prediction incorrect/within margin
-                if (o * val) < self.margin:
+                if (int(ex[-1]) * val) < self.margin:
                     self.update(curr_example)
 
                 # Update current example count
